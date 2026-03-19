@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VMeste — Мессенджер</title>
+    <link rel="icon" type="image/jpeg" href="public/img/logo.jpg">
+    <link rel="stylesheet" href="public/css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Auth Screen -->
+    <div id="auth-screen" class="screen active">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <div class="logo-icon"><img src="public/img/logo.jpg" alt="VMeste"></div>
+                <h1>VMeste</h1>
+                <p class="auth-subtitle">Общайтесь свободно</p>
+            </div>
+            <div id="login-form" class="auth-form">
+                <h2>Вход</h2>
+                <div class="input-group">
+                    <input type="text" id="login-username" placeholder="Имя пользователя" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <input type="password" id="login-password" placeholder="Пароль">
+                </div>
+                <button class="btn-primary" id="btn-login">Войти</button>
+                <p class="auth-switch">Нет аккаунта? <a href="#" id="show-register">Создать</a></p>
+            </div>
+            <div id="register-form" class="auth-form hidden">
+                <h2>Регистрация</h2>
+                <div class="input-group">
+                    <input type="text" id="reg-displayname" placeholder="Отображаемое имя" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <input type="text" id="reg-username" placeholder="Имя пользователя (логин)" autocomplete="off">
+                </div>
+                <div class="input-group">
+                    <input type="password" id="reg-password" placeholder="Пароль">
+                </div>
+                <button class="btn-primary" id="btn-register">Создать аккаунт</button>
+                <p class="auth-switch">Уже есть аккаунт? <a href="#" id="show-login">Войти</a></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div id="app-screen" class="screen">
+        <div class="app-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <button class="hamburger-btn" id="btn-menu">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <div class="search-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                            <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                            <path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <input type="text" id="search-input" placeholder="Поиск...">
+                    </div>
+                </div>
+                <div class="chat-list" id="chat-list"></div>
+                <button class="fab" id="btn-new-chat" title="Новый чат">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </aside>
+
+            <!-- Slide Menu -->
+            <div class="slide-menu-overlay hidden" id="slide-menu-overlay"></div>
+            <div class="slide-menu" id="slide-menu">
+                <div class="slide-menu-header">
+                    <div class="slide-menu-avatar" id="menu-avatar"></div>
+                    <div class="slide-menu-user">
+                        <span class="slide-menu-name" id="menu-name"></span>
+                        <span class="slide-menu-username" id="menu-username"></span>
+                    </div>
+                </div>
+                <nav class="slide-menu-nav">
+                    <button class="slide-menu-item" id="btn-new-group">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2"/></svg>
+                        Создать группу
+                    </button>
+                    <button class="slide-menu-item" id="btn-contacts">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/></svg>
+                        Контакты
+                    </button>
+                    <button class="slide-menu-item" id="btn-saved">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" stroke="currentColor" stroke-width="2"/></svg>
+                        Избранное
+                    </button>
+                    <button class="slide-menu-item" id="btn-settings">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2"/></svg>
+                        Настройки
+                    </button>
+                    <div class="slide-menu-divider"></div>
+                    <button class="slide-menu-item" id="btn-darkmode">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 12.79A9 9 0 1 1 11.21 3a7 7 0 0 0 9.79 9.79z" stroke="currentColor" stroke-width="2"/></svg>
+                        Тёмная тема
+                    </button>
+                    <button class="slide-menu-item danger" id="btn-logout">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        Выйти
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Chat Area -->
+            <main class="chat-area" id="chat-area">
+                <!-- Empty state -->
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-state-icon">
+                        <img src="public/img/logo.jpg" alt="VMeste">
+                    </div>
+                    <h2>VMeste</h2>
+                    <p>Выберите чат или создайте новый, чтобы начать общение</p>
+                </div>
+
+                <!-- Chat Header -->
+                <div class="chat-header hidden" id="chat-header">
+                    <button class="back-btn" id="btn-back">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                    <div class="chat-header-avatar" id="header-avatar"></div>
+                    <div class="chat-header-info">
+                        <span class="chat-header-name" id="header-name"></span>
+                        <span class="chat-header-status" id="header-status">в сети</span>
+                    </div>
+                    <div class="chat-header-actions">
+                        <button class="icon-btn" id="btn-search-messages" title="Поиск">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M16 16l4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                        <button class="icon-btn" id="btn-chat-menu" title="Меню">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="19" r="1.5" fill="currentColor"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Messages -->
+                <div class="messages-container hidden" id="messages-container">
+                    <div class="messages" id="messages"></div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="input-area hidden" id="input-area">
+                    <!-- Attach menu popup -->
+                    <div class="attach-menu hidden" id="attach-menu">
+                        <button class="attach-menu-item" id="attach-photo">
+                            <div class="attach-menu-icon" style="background:#4fc3f7"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="white" stroke-width="2"/><circle cx="8.5" cy="8.5" r="1.5" fill="white"/><path d="M21 15l-5-5L5 21" stroke="white" stroke-width="2"/></svg></div>
+                            <span>Фото/Видео</span>
+                        </button>
+                        <button class="attach-menu-item" id="attach-file">
+                            <div class="attach-menu-icon" style="background:#7c4dff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="white" stroke-width="2"/><path d="M14 2v6h6" stroke="white" stroke-width="2"/></svg></div>
+                            <span>Файл</span>
+                        </button>
+                        <button class="attach-menu-item" id="attach-video-circle">
+                            <div class="attach-menu-icon" style="background:#e91e63"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="2"/><polygon points="10,8 16,12 10,16" fill="white"/></svg></div>
+                            <span>Кружок</span>
+                        </button>
+                    </div>
+                    <input type="file" id="file-input-photo" class="hidden" accept="image/*,video/mp4,video/webm">
+                    <input type="file" id="file-input-file" class="hidden">
+
+                    <!-- Normal input mode -->
+                    <div class="input-normal" id="input-normal">
+                        <button class="icon-btn" id="btn-attach" title="Прикрепить">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <div class="input-wrapper">
+                            <textarea id="message-input" placeholder="Сообщение..." rows="1"></textarea>
+                            <button class="emoji-btn" id="btn-emoji" title="Эмодзи">
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M8 14s1.5 2 4 2 4-2 4-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="9" y1="9" x2="9.01" y2="9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/><line x1="15" y1="9" x2="15.01" y2="9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+                            </button>
+                        </div>
+                        <button class="send-btn" id="btn-send" title="Отправить">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                        <button class="mic-btn hidden" id="btn-mic" title="Голосовое сообщение">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" stroke-width="2"/><path d="M5 10v1a7 7 0 0 0 14 0v-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                    </div>
+
+                    <!-- Voice recording mode -->
+                    <div class="input-recording hidden" id="input-recording">
+                        <button class="icon-btn recording-cancel" id="btn-cancel-voice" title="Отмена">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                        <div class="recording-indicator">
+                            <span class="recording-dot"></span>
+                            <span class="recording-time" id="recording-time">0:00</span>
+                        </div>
+                        <span class="recording-label">Запись голосового...</span>
+                        <button class="send-btn" id="btn-send-voice" title="Отправить">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Video Circle Recording Modal -->
+                <div class="video-circle-modal hidden" id="video-circle-modal">
+                    <div class="video-circle-backdrop"></div>
+                    <div class="video-circle-content">
+                        <div class="video-circle-preview-wrap">
+                            <video id="video-circle-feed" autoplay muted playsinline></video>
+                            <div class="video-circle-timer" id="video-circle-timer">0:00</div>
+                            <div class="video-circle-progress-ring" id="video-circle-ring">
+                                <svg viewBox="0 0 220 220">
+                                    <circle cx="110" cy="110" r="106" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4"/>
+                                    <circle id="video-circle-progress" cx="110" cy="110" r="106" fill="none" stroke="#e91e63" stroke-width="4" stroke-dasharray="666" stroke-dashoffset="666" transform="rotate(-90 110 110)"/>
+                                </svg>
+                            </div>
+                        </div>
+                        <div class="video-circle-controls">
+                            <button class="video-circle-btn cancel" id="btn-cancel-video-circle">Отмена</button>
+                            <button class="video-circle-btn record" id="btn-toggle-video-circle">
+                                <div class="record-dot"></div>
+                            </button>
+                            <button class="video-circle-btn send hidden" id="btn-send-video-circle">Отправить</button>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- New Chat Modal -->
+    <div class="modal-overlay hidden" id="new-chat-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Новый чат</h3>
+                <button class="icon-btn modal-close" id="close-new-chat">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <input type="text" id="new-chat-search" placeholder="Поиск пользователей..." autocomplete="off">
+                </div>
+                <div class="user-list" id="user-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay hidden" id="settings-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>Настройки</h3>
+                <button class="icon-btn modal-close" id="close-settings">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="settings-profile">
+                    <div class="settings-avatar" id="settings-avatar"></div>
+                    <div class="input-group">
+                        <label>Отображаемое имя</label>
+                        <input type="text" id="settings-name" placeholder="Ваше имя">
+                    </div>
+                    <div class="input-group">
+                        <label>О себе</label>
+                        <textarea id="settings-bio" placeholder="Расскажите о себе..." rows="3"></textarea>
+                    </div>
+                    <button class="btn-primary" id="btn-save-settings">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Emoji Picker -->
+    <div class="emoji-picker hidden" id="emoji-picker">
+        <div class="emoji-grid" id="emoji-grid"></div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast hidden" id="toast"></div>
+
+    <script src="public/js/app.js"></script>
+</body>
+</html>
