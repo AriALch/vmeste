@@ -104,6 +104,7 @@ async function initDatabase() {
     try { db.run('ALTER TABLE messages ADD COLUMN fileName TEXT DEFAULT NULL'); } catch (e) {}
     try { db.run('ALTER TABLE messages ADD COLUMN fileSize INTEGER DEFAULT 0'); } catch (e) {}
     try { db.run('ALTER TABLE messages ADD COLUMN duration REAL DEFAULT 0'); } catch (e) {}
+    try { db.run('ALTER TABLE users ADD COLUMN avatarUrl TEXT DEFAULT NULL'); } catch (e) {}
 
     // Create indexes (use IF NOT EXISTS workaround)
     try { db.run('CREATE INDEX idx_messages_chatId ON messages(chatId)'); } catch (e) {}

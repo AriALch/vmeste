@@ -162,10 +162,6 @@
                             <div class="attach-menu-icon" style="background:#7c4dff"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="white" stroke-width="2"/><path d="M14 2v6h6" stroke="white" stroke-width="2"/></svg></div>
                             <span>Файл</span>
                         </button>
-                        <button class="attach-menu-item" id="attach-video-circle">
-                            <div class="attach-menu-icon" style="background:#e91e63"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="white" stroke-width="2"/><polygon points="10,8 16,12 10,16" fill="white"/></svg></div>
-                            <span>Кружок</span>
-                        </button>
                     </div>
                     <input type="file" id="file-input-photo" class="hidden" accept="image/*,video/mp4,video/webm">
                     <input type="file" id="file-input-file" class="hidden">
@@ -186,6 +182,9 @@
                         </button>
                         <button class="mic-btn hidden" id="btn-mic" title="Голосовое сообщение">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="9" y="2" width="6" height="12" rx="3" stroke="currentColor" stroke-width="2"/><path d="M5 10v1a7 7 0 0 0 14 0v-1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="12" y1="18" x2="12" y2="22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                        </button>
+                        <button class="videocircle-btn hidden" id="btn-video-circle" title="Видеосообщение">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><polygon points="10,8 16,12 10,16" fill="currentColor"/></svg>
                         </button>
                     </div>
 
@@ -261,7 +260,13 @@
             </div>
             <div class="modal-body">
                 <div class="settings-profile">
-                    <div class="settings-avatar" id="settings-avatar"></div>
+                    <div class="settings-avatar-wrap">
+                        <div class="settings-avatar" id="settings-avatar"></div>
+                        <label class="settings-avatar-upload" id="settings-avatar-label" title="Изменить фото">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" stroke="white" stroke-width="2"/><circle cx="12" cy="13" r="4" stroke="white" stroke-width="2"/></svg>
+                            <input type="file" id="avatar-input" accept="image/*" class="hidden">
+                        </label>
+                    </div>
                     <div class="input-group">
                         <label>Отображаемое имя</label>
                         <input type="text" id="settings-name" placeholder="Ваше имя">
@@ -278,7 +283,21 @@
 
     <!-- Emoji Picker -->
     <div class="emoji-picker hidden" id="emoji-picker">
+        <div class="emoji-search-wrap">
+            <input type="text" id="emoji-search" placeholder="Поиск эмодзи..." autocomplete="off">
+        </div>
         <div class="emoji-grid" id="emoji-grid"></div>
+        <div class="emoji-tabs" id="emoji-tabs">
+            <button class="emoji-tab active" data-cat="frequent" title="Часто используемые">🕐</button>
+            <button class="emoji-tab" data-cat="smileys" title="Смайлы">😀</button>
+            <button class="emoji-tab" data-cat="people" title="Люди">👋</button>
+            <button class="emoji-tab" data-cat="animals" title="Животные">🐻</button>
+            <button class="emoji-tab" data-cat="food" title="Еда">🍔</button>
+            <button class="emoji-tab" data-cat="travel" title="Путешествия">✈️</button>
+            <button class="emoji-tab" data-cat="objects" title="Предметы">💡</button>
+            <button class="emoji-tab" data-cat="symbols" title="Символы">❤️</button>
+            <button class="emoji-tab" data-cat="flags" title="Флаги">🏁</button>
+        </div>
     </div>
 
     <!-- Toast -->

@@ -68,7 +68,7 @@ function authenticate(req, res, next) {
     const row = queryGet('SELECT userId FROM tokens WHERE token = ?', [token]);
     if (!row) return res.status(401).json({ error: 'Недействительный токен' });
 
-    const user = queryGet('SELECT id, username, displayName, bio, color FROM users WHERE id = ?', [row.userId]);
+    const user = queryGet('SELECT id, username, displayName, bio, color, avatarUrl FROM users WHERE id = ?', [row.userId]);
     if (!user) return res.status(401).json({ error: 'Пользователь не найден' });
 
     req.user = user;
@@ -81,7 +81,8 @@ function sanitizeUser(user) {
         username: user.username,
         displayName: user.displayName,
         bio: user.bio,
-        color: user.color
+        color: user.color,
+        avatarUrl: user.avatarUrl || null
     };
 }
 
@@ -112,7 +113,7 @@ app.post('/api/register', (req, res) => {
     const token = uuidv4();
     runSql('INSERT INTO tokens (token, userId, createdAt) VALUES (?, ?, ?)', [token, userId, now]);
 
-    const user = queryGet('SELECT id, username, displayName, bio, color FROM users WHERE id = ?', [userId]);
+    const user = queryGet('SELECT id, username, displayName, bio, color, avatarUrl FROM users WHERE id = ?', [userId]);
 
     res.json({ user: sanitizeUser(user), token });
 });
@@ -141,7 +142,7 @@ app.post('/api/login', (req, res) => {
 
 // ==================== API ROUTES ====================
 app.get('/api/users', authenticate, (req, res) => {
-    const users = queryAll('SELECT id, username, displayName, bio, color FROM users WHERE id != ?', [req.user.id]);
+    const users = queryAll('SELECT id, username, displayName, bio, color, avatarUrl FROM users WHERE id != ?', [req.user.id]);
     res.json(users);
 });
 
@@ -156,7 +157,7 @@ app.get('/api/chats', authenticate, (req, res) => {
     const result = chats.map(chat => {
         // Get members
         const members = queryAll(
-            'SELECT u.id, u.username, u.displayName, u.bio, u.color FROM chat_members cm JOIN users u ON u.id = cm.userId WHERE cm.chatId = ?',
+            'SELECT u.id, u.username, u.displayName, u.bio, u.color, u.avatarUrl FROM chat_members cm JOIN users u ON u.id = cm.userId WHERE cm.chatId = ?',
             [chat.id]
         );
 
@@ -215,7 +216,7 @@ app.post('/api/chats', authenticate, (req, res) => {
     if (existingChat) {
         const chat = queryGet('SELECT * FROM chats WHERE id = ?', [existingChat.id]);
         const members = queryAll(
-            'SELECT u.id, u.username, u.displayName, u.bio, u.color FROM chat_members cm JOIN users u ON u.id = cm.userId WHERE cm.chatId = ?',
+            'SELECT u.id, u.username, u.displayName, u.bio, u.color, u.avatarUrl FROM chat_members cm JOIN users u ON u.id = cm.userId WHERE cm.chatId = ?',
             [chat.id]
         );
         return res.json({ ...chat, members });
@@ -231,7 +232,7 @@ app.post('/api/chats', authenticate, (req, res) => {
 
     const chat = queryGet('SELECT * FROM chats WHERE id = ?', [chatId]);
     const members = queryAll(
-        'SELECT u.id, u.username, u.displayName, u.bio, u.color FROM chat_members cm JOIN users u ON u.id = cm.userId WHERE cm.chatId = ?',
+        'SELECT u.id, u.username, u.displayName, u.bio, u.color, u.avatarUrl FROM chat_members cm JOIN users u ON u.id = cm.userId WHERE cm.chatId = ?',
         [chatId]
     );
 
@@ -253,6 +254,28 @@ app.get('/api/chats/:chatId/messages', authenticate, (req, res) => {
     runSql('UPDATE messages SET read = 1 WHERE chatId = ? AND senderId != ? AND read = 0', [chatId, req.user.id]);
 
     res.json(messages);
+});
+
+// ==================== PROFILE ====================
+app.put('/api/profile', authenticate, (req, res) => {
+    const { displayName, bio } = req.body;
+    if (!displayName || !displayName.trim()) {
+        return res.status(400).json({ error: 'Введите имя' });
+    }
+    runSql('UPDATE users SET displayName = ?, bio = ? WHERE id = ?',
+        [displayName.trim(), (bio || '').trim(), req.user.id]);
+    const user = queryGet('SELECT id, username, displayName, bio, color, avatarUrl FROM users WHERE id = ?', [req.user.id]);
+    res.json({ user: sanitizeUser(user) });
+});
+
+app.post('/api/profile/avatar', authenticate, upload.single('avatar'), (req, res) => {
+    if (!req.file) {
+        return res.status(400).json({ error: 'Файл не прикреплён' });
+    }
+    const avatarUrl = '/uploads/' + req.file.filename;
+    runSql('UPDATE users SET avatarUrl = ? WHERE id = ?', [avatarUrl, req.user.id]);
+    const user = queryGet('SELECT id, username, displayName, bio, color, avatarUrl FROM users WHERE id = ?', [req.user.id]);
+    res.json({ user: sanitizeUser(user) });
 });
 
 // ==================== FILE UPLOAD ====================
@@ -369,7 +392,7 @@ wss.on('connection', (ws) => {
                 return;
             }
 
-            const user = queryGet('SELECT id, username, displayName, bio, color FROM users WHERE id = ?', [tokenRow.userId]);
+            const user = queryGet('SELECT id, username, displayName, bio, color, avatarUrl FROM users WHERE id = ?', [tokenRow.userId]);
             if (!user) return;
 
             clients.set(ws, { userId: user.id, token: data.token });

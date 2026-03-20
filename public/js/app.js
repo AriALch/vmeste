@@ -286,8 +286,11 @@
             const el = document.createElement('div');
             el.className = 'chat-item' + (currentChatId === chat.id ? ' active' : '');
             el.dataset.chatId = chat.id;
+            const avatarContent = other.avatarUrl
+                ? `<img src="${other.avatarUrl}" alt="">`
+                : getInitials(other.displayName);
             el.innerHTML = `
-                <div class="chat-item-avatar" style="background:${other.color}">${getInitials(other.displayName)}</div>
+                <div class="chat-item-avatar" style="background:${other.color}">${avatarContent}</div>
                 <div class="chat-item-info">
                     <div class="chat-item-top">
                         <span class="chat-item-name">${escapeHtml(other.displayName)}</span>
@@ -328,8 +331,11 @@
         document.getElementById('messages-container').classList.remove('hidden');
         document.getElementById('input-area').classList.remove('hidden');
 
-        document.getElementById('header-avatar').style.background = other.color;
-        document.getElementById('header-avatar').textContent = getInitials(other.displayName);
+        const headerAvatar = document.getElementById('header-avatar');
+        headerAvatar.style.background = other.color;
+        headerAvatar.innerHTML = other.avatarUrl
+            ? `<img src="${other.avatarUrl}" alt="">`
+            : getInitials(other.displayName);
         document.getElementById('header-name').textContent = other.displayName;
         updateHeaderStatus();
         updateInputButtons();
@@ -337,14 +343,18 @@
         if (isMobile) document.getElementById('sidebar').classList.add('chat-open');
         updateActiveChatItem();
 
+        // Make input interactive immediately
+        const msgInput = document.getElementById('message-input');
+        msgInput.value = '';
+        msgInput.disabled = false;
+        if (!isMobile) msgInput.focus();
+
         try {
             const messages = await api('GET', `/chats/${chatId}/messages`);
             renderMessages(messages);
             wsSend({ type: 'mark_read', chatId });
             loadChatList();
         } catch (err) { showToast('Ошибка загрузки сообщений'); }
-
-        setTimeout(() => document.getElementById('message-input').focus(), 100);
     }
 
     function renderMessages(messages) {
@@ -431,8 +441,10 @@
     function appendMessage(msg) {
         const container = document.getElementById('messages');
         if (!container) return;
-        const lastDateSep = container.querySelector('.date-separator:last-of-type');
         const msgDate = new Date(msg.timestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+        // Find the last date separator correctly
+        const allSeps = container.querySelectorAll('.date-separator');
+        const lastDateSep = allSeps.length > 0 ? allSeps[allSeps.length - 1] : null;
         const lastDate = lastDateSep ? lastDateSep.textContent.trim() : '';
         if (msgDate !== lastDate) {
             const sep = document.createElement('div');
@@ -760,8 +772,11 @@
             filtered.forEach(user => {
                 const el = document.createElement('div');
                 el.className = 'user-item';
+                const uAvatarContent = user.avatarUrl
+                    ? `<img src="${user.avatarUrl}" alt="">`
+                    : getInitials(user.displayName);
                 el.innerHTML = `
-                    <div class="user-item-avatar" style="background:${user.color}">${getInitials(user.displayName)}</div>
+                    <div class="user-item-avatar" style="background:${user.color}">${uAvatarContent}</div>
                     <div class="user-item-info">
                         <div class="user-item-name">${escapeHtml(user.displayName)}</div>
                         <div class="user-item-username">@${escapeHtml(user.username)}</div>
@@ -794,23 +809,63 @@
     function showSettings() {
         closeSlideMenu();
         const modal = document.getElementById('settings-modal');
-        document.getElementById('settings-avatar').style.background = currentUser.color;
-        document.getElementById('settings-avatar').textContent = getInitials(currentUser.displayName);
+        updateSettingsAvatar();
         document.getElementById('settings-name').value = currentUser.displayName;
         document.getElementById('settings-bio').value = currentUser.bio || '';
         modal.classList.remove('hidden');
     }
 
-    function saveSettings() {
+    async function saveSettings() {
         const name = document.getElementById('settings-name').value.trim();
         if (!name) return showToast('Введите имя');
-        currentUser.displayName = name;
-        currentUser.bio = document.getElementById('settings-bio').value.trim();
-        localStorage.setItem('vm_user', JSON.stringify(currentUser));
-        updateMenuProfile();
-        loadChatList();
-        document.getElementById('settings-modal').classList.add('hidden');
-        showToast('Настройки сохранены');
+        try {
+            const data = await api('PUT', '/profile', {
+                displayName: name,
+                bio: document.getElementById('settings-bio').value.trim()
+            });
+            currentUser = data.user;
+            localStorage.setItem('vm_user', JSON.stringify(currentUser));
+            updateMenuProfile();
+            loadChatList();
+            document.getElementById('settings-modal').classList.add('hidden');
+            showToast('Настройки сохранены');
+        } catch (err) {
+            showToast(err.message);
+        }
+    }
+
+    async function uploadAvatar(file) {
+        if (!file) return;
+        const formData = new FormData();
+        formData.append('avatar', file);
+        try {
+            showToast('Загрузка фото...');
+            const res = await fetch(API_BASE + '/profile/avatar', {
+                method: 'POST',
+                headers: { 'Authorization': authToken },
+                body: formData
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Ошибка загрузки');
+            currentUser = data.user;
+            localStorage.setItem('vm_user', JSON.stringify(currentUser));
+            updateMenuProfile();
+            updateSettingsAvatar();
+            loadChatList();
+            showToast('Фото обновлено');
+        } catch (err) {
+            showToast(err.message);
+        }
+    }
+
+    function updateSettingsAvatar() {
+        const el = document.getElementById('settings-avatar');
+        el.style.background = currentUser.color;
+        if (currentUser.avatarUrl) {
+            el.innerHTML = `<img src="${currentUser.avatarUrl}" alt="">`;
+        } else {
+            el.textContent = getInitials(currentUser.displayName);
+        }
     }
 
     // ==================== SLIDE MENU ====================
@@ -832,8 +887,11 @@
 
     function updateMenuProfile() {
         if (!currentUser) return;
-        document.getElementById('menu-avatar').style.background = currentUser.color;
-        document.getElementById('menu-avatar').textContent = getInitials(currentUser.displayName);
+        const menuAvatar = document.getElementById('menu-avatar');
+        menuAvatar.style.background = currentUser.color;
+        menuAvatar.innerHTML = currentUser.avatarUrl
+            ? `<img src="${currentUser.avatarUrl}" alt="">`
+            : getInitials(currentUser.displayName);
         document.getElementById('menu-name').textContent = currentUser.displayName;
         document.getElementById('menu-username').textContent = '@' + currentUser.username;
     }
@@ -852,36 +910,162 @@
     }
 
     // ==================== EMOJI PICKER ====================
+    const emojiCategories = {
+        frequent: { label: 'Часто используемые', emojis: [] },
+        smileys: { label: 'Смайлы и эмоции', emojis: [
+            '😀','😃','😄','😁','😆','😅','🤣','😂','🙂','🙃','😉','😊','😇','🥰','😍','🤩','😘','😗','😚','😙',
+            '🥲','😋','😛','😜','🤪','😝','🤑','🤗','🤭','🤫','🤔','🫡','🤐','🤨','😐','😑','😶','🫥','😏','😒',
+            '🙄','😬','🤥','😌','😔','😪','🤤','😴','😷','🤒','🤕','🤢','🤮','🥴','😵','🤯','🥱','😤','😡','🤬',
+            '😈','👿','💀','☠️','💩','🤡','👹','👺','👻','👽','👾','🤖','😺','😸','😹','😻','😼','😽','🙀','😿','😾',
+            '🫠','🫢','🫣','🫤','🥹','🫶','🫰','🫵','🫱','🫲','🫳','🫴','🫷','🫸'
+        ]},
+        people: { label: 'Люди и жесты', emojis: [
+            '👋','🤚','🖐️','✋','🖖','🫱','🫲','🫳','🫴','👌','🤌','🤏','✌️','🤞','🫰','🤟','🤘','🤙','👈','👉',
+            '👆','🖕','👇','☝️','🫵','👍','👎','✊','👊','🤛','🤜','👏','🙌','🫶','👐','🤲','🤝','🙏',
+            '💪','🦾','🦿','🦵','🦶','👂','🦻','👃','🧠','🫀','🫁','🦷','🦴','👀','👁️','👅','👄',
+            '👶','🧒','👦','👧','🧑','👱','👨','🧔','👩','🧓','👴','👵','🙍','🙎','🙅','🙆','💁','🙋','🧏','🙇',
+            '🤦','🤷','👮','🕵️','💂','🥷','👷','🫅','🤴','👸','👳','👲','🧕','🤵','👰','🤰','🫄','🤱','👼','🎅',
+            '🤶','🦸','🦹','🧙','🧚','🧛','🧜','🧝','🧞','🧟','🧌','💆','💇','🚶','🧍','🧎','🏃','💃','🕺','👯'
+        ]},
+        animals: { label: 'Животные и природа', emojis: [
+            '🐶','🐱','🐭','🐹','🐰','🦊','🐻','🐼','🐻‍❄️','🐨','🐯','🦁','🐮','🐷','🐽','🐸','🐵','🙈','🙉','🙊',
+            '🐒','🐔','🐧','🐦','🐤','🐣','🐥','🦆','🦅','🦉','🦇','🐺','🐗','🐴','🦄','🐝','🪱','🐛','🦋','🐌',
+            '🐞','🐜','🪰','🪲','🪳','🦟','🦗','🕷️','🦂','🐢','🐍','🦎','🦖','🦕','🐙','🦑','🦐','🦞','🦀','🐡',
+            '🐠','🐟','🐬','🐳','🐋','🦈','🐊','🐅','🐆','🦓','🦍','🦧','🐘','🦛','🦏','🐪','🐫','🦒','🦘','🦬',
+            '🐃','🐂','🐄','🐎','🐖','🐏','🐑','🦙','🐐','🦌','🐕','🐩','🦮','🐈','🐈‍⬛','🪶','🐓','🦃','🦤','🦚',
+            '🦜','🦢','🦩','🕊️','🐇','🦝','🦨','🦡','🦫','🦦','🦥','🐁','🐀','🐿️','🦔',
+            '🌵','🎄','🌲','🌳','🌴','🪵','🌱','🌿','☘️','🍀','🎍','🪴','🎋','🍃','🍂','🍁','🪺','🪹',
+            '🍄','🌾','💐','🌷','🌹','🥀','🌺','🌸','🌼','🌻','🌞','🌝','🌛','🌜','🌚','🌕','🌖','🌗','🌘','🌑',
+            '🌒','🌓','🌔','🌙','🌎','🌍','🌏','🪐','💫','⭐','🌟','✨','⚡','☄️','💥','🔥','🌪️','🌈','☀️','🌤️',
+            '⛅','🌥️','☁️','🌦️','🌧️','⛈️','🌩️','🌨️','❄️','☃️','⛄','🌬️','💨','💧','💦','🫧','☔','☂️','🌊'
+        ]},
+        food: { label: 'Еда и напитки', emojis: [
+            '🍏','🍎','🍐','🍊','🍋','🍌','🍉','🍇','🍓','🫐','🍈','🍒','🍑','🥭','🍍','🥥','🥝','🍅','🍆','🥑',
+            '🥦','🥬','🥒','🌶️','🫑','🌽','🥕','🫒','🧄','🧅','🥔','🍠','🫘','🥐','🥯','🍞','🥖','🥨','🧀','🥚',
+            '🍳','🧈','🥞','🧇','🥓','🥩','🍗','🍖','🦴','🌭','🍔','🍟','🍕','🫓','🥪','🥙','🧆','🌮','🌯','🫔',
+            '🥗','🥘','🫕','🥫','🍝','🍜','🍲','🍛','🍣','🍱','🥟','🦪','🍤','🍙','🍚','🍘','🍥','🥠','🥮','🍢',
+            '🍡','🍧','🍨','🍦','🥧','🧁','🍰','🎂','🍮','🍭','🍬','🍫','🍿','🍩','🍪','🌰','🥜','🍯',
+            '🥛','🍼','🫖','☕','🍵','🧃','🥤','🧋','🍶','🍺','🍻','🥂','🍷','🥃','🍸','🍹','🧉','🍾','🧊','🥄','🍴','🍽️','🥢'
+        ]},
+        travel: { label: 'Путешествия и места', emojis: [
+            '🚗','🚕','🚙','🚌','🚎','🏎️','🚓','🚑','🚒','🚐','🛻','🚚','🚛','🚜','🛵','🏍️','🛺','🚲','🛴','🛹',
+            '🛼','🚁','🛸','✈️','🛩️','🚀','🛶','⛵','🚤','🛥️','🛳️','⛴️','🚢','🚂','🚃','🚄','🚅','🚆','🚇','🚈',
+            '🚉','🚊','🚝','🚞','🚋','🚍','🚏','🏗️','🌁','🗼','🏭','⛲','🎠','🎡','🎢','💈','🎪','🗽','🗿','🏰',
+            '🏯','🏟️','🎑','🏖️','🏝️','🏜️','🌋','⛰️','🏔️','🗻','🏕️','⛺','🛖','🏠','🏡','🏘️','🏚️','🏗️','🏢','🏬',
+            '🏣','🏤','🏥','🏦','🏨','🏪','🏫','🏩','💒','🏛️','⛪','🕌','🕍','🛕','🕋','⛩️','🗾','🎏','🎐','🏮'
+        ]},
+        objects: { label: 'Предметы', emojis: [
+            '⌚','📱','💻','⌨️','🖥️','🖨️','🖱️','🖲️','🕹️','🗜️','💽','💾','💿','📀','📼','📷','📸','📹','🎥','📽️',
+            '🎬','📺','📻','🎙️','🎚️','🎛️','🧭','⏱️','⏲️','⏰','🕰️','⌛','📡','🔋','🔌','💡','🔦','🕯️','🧯','🛢️',
+            '💸','💵','💴','💶','💷','🪙','💰','💳','💎','⚖️','🪜','🧰','🪛','🔧','🔨','⚒️','🛠️','⛏️','🪚','🔩',
+            '⚙️','🪤','🧲','🔫','💣','🧨','🪓','🔪','🗡️','⚔️','🛡️','🚬','⚰️','🪦','⚱️','🏺','🔮','📿','🧿','🪬',
+            '💈','⚗️','🔭','🔬','🕳️','🩹','🩺','🩻','🩼','💊','💉','🩸','🧬','🦠','🧫','🧪','🌡️','🧹','🪠','🧺',
+            '🧻','🚽','🪣','🧼','🫧','🪥','🧽','🧴','🛎️','🔑','🗝️','🚪','🪑','🛋️','🛏️','🛌','🧸','🪆','🖼️','🪞',
+            '📦','📫','📬','📭','📮','🏷️','📪','✉️','📧','📨','📩','📤','📥','📜','📃','📄','📑','🧾','📊','📈','📉',
+            '📎','🖇️','📏','📐','✂️','🗃️','🗄️','🗑️','🔒','🔓','🔏','🔐','📌','📍','✏️','🖊️','🖋️','✒️','📝','📁','📂','📅','📆','📇'
+        ]},
+        symbols: { label: 'Символы', emojis: [
+            '❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝',
+            '❤️‍🔥','❤️‍🩹','💟','☮️','✝️','☪️','🕉️','☸️','🪯','✡️','🔯','🕎','☯️','☦️','🛐','⛎',
+            '♈','♉','♊','♋','♌','♍','♎','♏','♐','♑','♒','♓','🆔','⚛️','🉑','☢️','☣️','📴','📳','🈶','🈚',
+            '🈸','🈺','🈷️','✴️','🆚','💮','🉐','㊙️','㊗️','🈴','🈵','🈹','🈲','🅰️','🅱️','🆎','🆑','🅾️','🆘','❌',
+            '⭕','🛑','⛔','📛','🚫','💯','💢','♨️','🚷','🚯','🚳','🚱','🔞','📵','🚭','❗','❕','❓','❔','‼️',
+            '⁉️','🔅','🔆','〽️','⚠️','🚸','🔱','⚜️','🔰','♻️','✅','🈯','💹','❇️','✳️','❎','🌐','💠','Ⓜ️','🌀',
+            '🆒','🆓','🆕','🆖','🆗','🆙','🆚','🎵','🎶','〰️','➰','✔️','☑️','🔘','🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🔺','🔻','🔸','🔹','🔶','🔷','▪️','▫️','◾','◽','◼️','◻️','🟥','🟧','🟨','🟩','🟦','🟪','⬛','⬜','🟫'
+        ]},
+        flags: { label: 'Флаги', emojis: [
+            '🏁','🚩','🎌','🏴','🏳️','🏳️‍🌈','🏳️‍⚧️','🏴‍☠️',
+            '🇷🇺','🇺🇦','🇧🇾','🇰🇿','🇺🇸','🇬🇧','🇩🇪','🇫🇷','🇮🇹','🇪🇸','🇵🇹','🇧🇷','🇯🇵','🇰🇷','🇨🇳','🇮🇳',
+            '🇹🇷','🇦🇪','🇸🇦','🇮🇱','🇦🇺','🇨🇦','🇲🇽','🇦🇷','🇨🇱','🇨🇴','🇵🇪','🇻🇪','🇪🇬','🇿🇦','🇳🇬','🇰🇪',
+            '🇹🇭','🇻🇳','🇮🇩','🇵🇭','🇲🇾','🇸🇬','🇳🇿','🇫🇮','🇸🇪','🇳🇴','🇩🇰','🇮🇪','🇳🇱','🇧🇪','🇨🇭','🇦🇹',
+            '🇵🇱','🇨🇿','🇷🇴','🇭🇺','🇬🇷','🇭🇷','🇷🇸','🇧🇬','🇬🇪','🇦🇲','🇦🇿','🇺🇿','🇰🇬','🇹🇯','🇹🇲','🇲🇩'
+        ]}
+    };
+
+    let frequentEmojis = JSON.parse(localStorage.getItem('vm_frequent_emoji') || '[]');
+    let currentEmojiCat = 'frequent';
+
     function initEmojiPicker() {
-        const emojis = [
-            '\u{1F600}','\u{1F602}','\u{1F923}','\u{1F60A}','\u{1F60D}','\u{1F970}','\u{1F618}','\u{1F60E}','\u{1F914}','\u{1F610}',
-            '\u{1F611}','\u{1F636}','\u{1F644}','\u{1F60F}','\u{1F623}','\u{1F625}','\u{1F62E}','\u{1F910}','\u{1F62F}','\u{1F62A}',
-            '\u{1F62B}','\u{1F971}','\u{1F634}','\u{1F60C}','\u{1F61B}','\u{1F61C}','\u{1F61D}','\u{1F924}','\u{1F612}','\u{1F613}',
-            '\u{1F614}','\u{1F615}','\u{1F643}','\u{1F911}','\u{1F632}','\u{1F641}','\u{1F616}','\u{1F61E}','\u{1F61F}','\u{1F624}',
-            '\u{1F622}','\u{1F62D}','\u{1F626}','\u{1F627}','\u{1F628}','\u{1F629}','\u{1F92F}','\u{1F62C}','\u{1F630}','\u{1F631}',
-            '\u{1F975}','\u{1F976}','\u{1F633}','\u{1F92A}','\u{1F635}','\u{1F974}','\u{1F620}','\u{1F621}','\u{1F92C}','\u{1F637}',
-            '\u{1F912}','\u{1F915}','\u{1F922}','\u{1F92E}','\u{1F973}','\u{1F97A}','\u{1F920}','\u{1F921}','\u{1F925}','\u{1F92B}',
-            '\u{1F92D}','\u{1F9D0}','\u{1F913}','\u{1F608}','\u{1F47F}','\u{1F44B}','\u{1F91A}','\u270B','\u{1F596}','\u{1F44C}',
-            '\u{1F90C}','\u{1F90F}','\u270C\uFE0F','\u{1F91E}','\u{1FAF0}','\u{1F91F}','\u{1F918}','\u{1F919}','\u{1F448}','\u{1F449}',
-            '\u{1F446}','\u{1F447}','\u261D\uFE0F','\u{1F44D}','\u{1F44E}','\u270A','\u{1F44A}','\u{1F91B}','\u{1F91C}','\u{1F44F}',
-            '\u2764\uFE0F','\u{1F9E1}','\u{1F49B}','\u{1F49A}','\u{1F499}','\u{1F49C}','\u{1F5A4}','\u{1F90D}','\u{1F494}','\u2763\uFE0F',
-            '\u{1F495}','\u{1F49E}','\u{1F493}','\u{1F497}','\u{1F496}','\u{1F498}','\u{1F49D}','\u{1F525}','\u2B50','\u{1F31F}',
-            '\u{1F4AB}','\u2728','\u{1F389}','\u{1F38A}','\u{1F388}','\u{1F381}','\u{1F3C6}','\u{1F947}','\u{1F3AF}','\u{1F4AF}',
-        ];
+        emojiCategories.frequent.emojis = frequentEmojis.slice(0, 32);
+        renderEmojiCategory(currentEmojiCat);
+
+        // Tab clicks
+        document.querySelectorAll('.emoji-tab').forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const cat = tab.dataset.cat;
+                currentEmojiCat = cat;
+                document.querySelectorAll('.emoji-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                renderEmojiCategory(cat);
+            });
+        });
+
+        // Search
+        document.getElementById('emoji-search').addEventListener('input', (e) => {
+            const q = e.target.value.trim().toLowerCase();
+            if (!q) { renderEmojiCategory(currentEmojiCat); return; }
+            // Search all categories
+            const grid = document.getElementById('emoji-grid');
+            grid.innerHTML = '';
+            Object.values(emojiCategories).forEach(cat => {
+                cat.emojis.forEach(emoji => {
+                    if (emoji.includes(q)) addEmojiButton(grid, emoji);
+                });
+            });
+            if (!grid.children.length) {
+                grid.innerHTML = '<div class="emoji-cat-label">Ничего не найдено</div>';
+            }
+        });
+    }
+
+    function renderEmojiCategory(catKey) {
         const grid = document.getElementById('emoji-grid');
         grid.innerHTML = '';
-        emojis.forEach(emoji => {
-            const btn = document.createElement('button');
-            btn.textContent = emoji;
-            btn.addEventListener('click', () => {
-                const input = document.getElementById('message-input');
-                input.value += emoji;
-                input.focus();
-                document.getElementById('emoji-picker').classList.add('hidden');
-                updateInputButtons();
-            });
-            grid.appendChild(btn);
+
+        if (catKey === 'frequent') {
+            if (frequentEmojis.length === 0) {
+                grid.innerHTML = '<div class="emoji-cat-label">Начните использовать эмодзи — они появятся здесь</div>';
+                return;
+            }
+            const label = document.createElement('div');
+            label.className = 'emoji-cat-label';
+            label.textContent = 'Часто используемые';
+            grid.appendChild(label);
+            frequentEmojis.slice(0, 32).forEach(e => addEmojiButton(grid, e));
+            return;
+        }
+
+        const cat = emojiCategories[catKey];
+        if (!cat) return;
+        const label = document.createElement('div');
+        label.className = 'emoji-cat-label';
+        label.textContent = cat.label;
+        grid.appendChild(label);
+        cat.emojis.forEach(e => addEmojiButton(grid, e));
+        grid.scrollTop = 0;
+    }
+
+    function addEmojiButton(grid, emoji) {
+        const btn = document.createElement('button');
+        btn.textContent = emoji;
+        btn.addEventListener('click', () => {
+            const input = document.getElementById('message-input');
+            input.value += emoji;
+            input.focus();
+            document.getElementById('emoji-picker').classList.add('hidden');
+            updateInputButtons();
+            trackFrequentEmoji(emoji);
         });
+        grid.appendChild(btn);
+    }
+
+    function trackFrequentEmoji(emoji) {
+        frequentEmojis = frequentEmojis.filter(e => e !== emoji);
+        frequentEmojis.unshift(emoji);
+        if (frequentEmojis.length > 50) frequentEmojis = frequentEmojis.slice(0, 50);
+        localStorage.setItem('vm_frequent_emoji', JSON.stringify(frequentEmojis));
+        emojiCategories.frequent.emojis = frequentEmojis.slice(0, 32);
     }
 
     // ==================== HELPERS ====================
@@ -960,14 +1144,17 @@
         const input = document.getElementById('message-input');
         const sendBtn = document.getElementById('btn-send');
         const micBtn = document.getElementById('btn-mic');
+        const vcBtn = document.getElementById('btn-video-circle');
         const hasText = input && input.value.trim().length > 0;
-        if (sendBtn && micBtn) {
+        if (sendBtn && micBtn && vcBtn) {
             if (hasText) {
                 sendBtn.classList.remove('hidden');
                 micBtn.classList.add('hidden');
+                vcBtn.classList.add('hidden');
             } else {
                 sendBtn.classList.add('hidden');
                 micBtn.classList.remove('hidden');
+                vcBtn.classList.remove('hidden');
             }
         }
     }
@@ -1033,6 +1220,10 @@
             document.getElementById('settings-modal').classList.add('hidden');
         });
         document.getElementById('btn-save-settings').addEventListener('click', saveSettings);
+        document.getElementById('avatar-input').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) uploadAvatar(file);
+        });
 
         // Send message
         document.getElementById('btn-send').addEventListener('click', sendMessage);
@@ -1067,8 +1258,8 @@
             document.getElementById('attach-menu').classList.add('hidden');
             handleFileSelect('file-input-file', 'file');
         });
-        document.getElementById('attach-video-circle').addEventListener('click', () => {
-            document.getElementById('attach-menu').classList.add('hidden');
+        // Video circle button (direct, like Telegram)
+        document.getElementById('btn-video-circle').addEventListener('click', () => {
             openVideoCircleModal();
         });
 
