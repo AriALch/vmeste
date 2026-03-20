@@ -794,7 +794,8 @@ body {
 .input-normal {
     display: flex;
     align-items: flex-end;
-    gap: 5px;
+    gap: 3px;
+    overflow: hidden;
 }
 
 .input-area .icon-btn {
@@ -895,8 +896,9 @@ body {
 
 /* Video circle input button */
 .videocircle-btn {
-    width: 44px;
-    height: 44px;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
     border-radius: 50%;
     background: none;
     color: var(--text-secondary);
@@ -1652,14 +1654,35 @@ body {
         height: 56px;
     }
 
-    /* Send/mic buttons bigger touch area */
+    /* Input buttons fit on mobile */
     .send-btn,
-    .mic-btn,
+    .mic-btn {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        min-height: 42px;
+    }
+
     .input-area .icon-btn {
-        width: 46px;
-        height: 46px;
-        min-width: 46px;
-        min-height: 46px;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .videocircle-btn {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+    }
+
+    .videocircle-btn svg {
+        width: 19px;
+        height: 19px;
+    }
+
+    .input-normal {
+        gap: 2px;
     }
 
     /* Emoji picker fits mobile */

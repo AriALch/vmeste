@@ -116,8 +116,54 @@
             appendMessage(message);
             scrollToBottom();
             wsSend({ type: 'mark_read', chatId: message.chatId });
+        } else {
+            // Show notification for messages in other chats
+            showMessageNotification(message);
         }
         loadChatList();
+    }
+
+    function showMessageNotification(message) {
+        if (!('Notification' in window)) return;
+        if (Notification.permission !== 'granted') return;
+        if (message.senderId === currentUser.id) return;
+
+        // Find sender name from chat list
+        let senderName = 'Новое сообщение';
+        for (const chat of chatListData) {
+            if (chat.id === message.chatId && chat.members) {
+                const sender = chat.members.find(m => m.id === message.senderId);
+                if (sender) senderName = sender.displayName;
+                break;
+            }
+        }
+
+        const type = message.msgType || 'text';
+        let body = message.text || '';
+        if (type === 'image') body = '📷 Фото';
+        if (type === 'file') body = '📎 Файл';
+        if (type === 'voice') body = '🎤 Голосовое сообщение';
+        if (type === 'video_circle') body = '🎥 Видеосообщение';
+
+        const notif = new Notification(senderName, {
+            body: body,
+            icon: '/public/img/logo.jpg',
+            tag: 'vmeste-' + message.chatId,
+            renotify: true
+        });
+
+        notif.onclick = () => {
+            window.focus();
+            openChat(message.chatId);
+            notif.close();
+        };
+    }
+
+    function requestNotificationPermission() {
+        if (!('Notification' in window)) return;
+        if (Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
     }
 
     function handleTypingIndicator(chatId, userId) {
@@ -225,6 +271,7 @@
         loadChatList();
         showEmptyState();
         connectWebSocket();
+        requestNotificationPermission();
     }
 
     function showEmptyState() {

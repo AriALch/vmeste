@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vmeste-v1';
+const CACHE_NAME = 'vmeste-v2';
 const STATIC_ASSETS = [
     '/',
     '/public/css/style.css',
