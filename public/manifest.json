@@ -1,0 +1,27 @@
+{
+  "name": "VMeste — Мессенджер",
+  "short_name": "VMeste",
+  "description": "Общайтесь свободно",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#517da2",
+  "icons": [
+    {
+      "src": "/public/img/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
+    {
+      "src": "/public/img/logo.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["social", "communication"],
+  "lang": "ru",
+  "dir": "ltr"
+}

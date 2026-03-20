@@ -335,7 +335,12 @@ app.post('/api/upload', authenticate, upload.single('file'), (req, res) => {
     res.json({ message });
 });
 
-// ==================== SERVE INDEX.HTML ====================
+// ==================== SERVE PWA FILES ====================
+app.get('/sw.js', (req, res) => {
+    res.setHeader('Service-Worker-Allowed', '/');
+    res.sendFile(path.join(ROOT_DIR, 'sw.js'));
+});
+
 app.get('/', (req, res) => {
     res.sendFile(path.join(ROOT_DIR, 'index.html'));
 });
