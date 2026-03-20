@@ -1124,6 +1124,52 @@
         // Responsive
         window.addEventListener('resize', () => { isMobile = window.innerWidth <= 768; });
 
+        // Mobile keyboard handling via visualViewport
+        if (isMobile && window.visualViewport) {
+            const vv = window.visualViewport;
+            let initialHeight = vv.height;
+
+            vv.addEventListener('resize', () => {
+                const keyboardOpen = vv.height < initialHeight * 0.85;
+                document.body.classList.toggle('keyboard-open', keyboardOpen);
+
+                // Adjust app height to visible viewport
+                const appLayout = document.querySelector('.app-layout');
+                if (appLayout) {
+                    appLayout.style.height = vv.height + 'px';
+                }
+
+                // Scroll to bottom when keyboard opens in chat
+                if (keyboardOpen && currentChatId) {
+                    const mc = document.getElementById('messages-container');
+                    if (mc) {
+                        setTimeout(() => { mc.scrollTop = mc.scrollHeight; }, 50);
+                    }
+                }
+            });
+
+            vv.addEventListener('scroll', () => {
+                // Keep input area pinned on iOS
+                const inputArea = document.getElementById('input-area');
+                if (inputArea && !inputArea.classList.contains('hidden')) {
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
+                }
+            });
+
+            // Update initial height on orientation change
+            window.addEventListener('orientationchange', () => {
+                setTimeout(() => { initialHeight = vv.height; }, 300);
+            });
+        }
+
+        // Prevent pull-to-refresh on mobile
+        document.addEventListener('touchmove', (e) => {
+            if (e.target.closest('.messages-container, .chat-list, .modal-body, .slide-menu-nav, .emoji-picker')) return;
+            if (e.touches.length > 1) return;
+            e.preventDefault();
+        }, { passive: false });
+
         checkSession();
     }
 
